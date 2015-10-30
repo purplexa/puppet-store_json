@@ -1,11 +1,12 @@
 require 'puppet'
 require 'fileutils'
 require 'puppet/util'
+require 'json'
 
 SEPARATOR = [Regexp.escape(File::SEPARATOR.to_s), Regexp.escape(File::ALT_SEPARATOR.to_s)].join
 
-Puppet::Reports.register_report(:store) do
-  desc "Store the yaml report on disk.  Each host sends its report as a YAML dump
+Puppet::Reports.register_report(:store_json) do
+  desc "Store the json report on disk.  Each host sends its report as a JSON dump
     and this just stores the file on disk, in the `reportdir` directory.
 
     These files collect quickly -- one every half hour -- so it is a good idea
@@ -17,7 +18,7 @@ Puppet::Reports.register_report(:store) do
 
     dir = File.join(Puppet[:reportdir], host)
 
-    if ! Puppet::FileSystem.exist?(dir)
+    if ! Puppet::FileSystem::File.exist?(dir)
       FileUtils.mkdir_p(dir)
       FileUtils.chmod_R(0750, dir)
     end
@@ -26,8 +27,8 @@ Puppet::Reports.register_report(:store) do
     now = Time.now.gmtime
     name = %w{year month day hour min}.collect do |method|
       # Make sure we're at least two digits everywhere
-      "%02d" % now.send(method).to_s
-    end.join("") + ".json"
+      '%02d' % now.send(method).to_s
+    end.join('') + '.json'
 
     file = File.join(dir, name)
 
@@ -39,6 +40,8 @@ Puppet::Reports.register_report(:store) do
             newlog = log.to_data_hash
             if log.tags.respond_to? :to_data_hash
               newlog['tags'] = log.tags.to_data_hash
+            elsif log.tags.is_a? Puppet::Util::TagSet
+              newlog['tags'] = log.tags.to_a
             end
             newlog
           end
@@ -54,13 +57,13 @@ Puppet::Reports.register_report(:store) do
             end
             if v.tags.respond_to? :to_data_hash
               jsonified['resource_statuses'][k]['tags'] = v.tags.to_data_hash
+            elsif v.tags.is_a? Puppet::Util::TagSet
+              jsonified['resource_statuses'][k]['tags'] = v.tags.to_a
             end
           end
         end
         fh.print(JSON.generate(jsonified))
       end
-    rescue => detail
-       Puppet.log_exception(detail, "Could not write report for #{host} at #{file}: #{detail}")
     end
 
     # Only testing cares about the return value
@@ -73,11 +76,11 @@ Puppet::Reports.register_report(:store) do
 
     dir = File.join(Puppet[:reportdir], host)
 
-    if Puppet::FileSystem.exist?(dir)
+    if Puppet::FileSystem::File.exist?(dir)
       Dir.entries(dir).each do |file|
         next if ['.','..'].include?(file)
         file = File.join(dir, file)
-        Puppet::FileSystem.unlink(file) if File.file?(file)
+        Puppet::FileSystem::File.unlink(file) if File.file?(file)
       end
       Dir.rmdir(dir)
     end
