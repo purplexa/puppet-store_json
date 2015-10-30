@@ -1,6 +1,7 @@
 require 'puppet'
 require 'fileutils'
 require 'puppet/util'
+require 'json'
 
 SEPARATOR = [Regexp.escape(File::SEPARATOR.to_s), Regexp.escape(File::ALT_SEPARATOR.to_s)].join
 
