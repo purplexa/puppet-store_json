@@ -5,8 +5,8 @@ require 'json'
 
 SEPARATOR = [Regexp.escape(File::SEPARATOR.to_s), Regexp.escape(File::ALT_SEPARATOR.to_s)].join
 
-Puppet::Reports.register_report(:store) do
-  desc "Store the yaml report on disk.  Each host sends its report as a YAML dump
+Puppet::Reports.register_report(:store_json) do
+  desc "Store the json report on disk.  Each host sends its report as a JSON dump
     and this just stores the file on disk, in the `reportdir` directory.
 
     These files collect quickly -- one every half hour -- so it is a good idea
@@ -27,8 +27,8 @@ Puppet::Reports.register_report(:store) do
     now = Time.now.gmtime
     name = %w{year month day hour min}.collect do |method|
       # Make sure we're at least two digits everywhere
-      "%02d" % now.send(method).to_s
-    end.join("") + ".json"
+      '%02d' % now.send(method).to_s
+    end.join('') + '.json'
 
     file = File.join(dir, name)
 
