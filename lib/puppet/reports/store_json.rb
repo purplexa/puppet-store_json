@@ -34,28 +34,64 @@ Puppet::Reports.register_report(:store_json) do
 
     begin
       Puppet::Util.replace_file(file, 0640) do |fh|
-        jsonified = self.to_data_hash
-        if jsonified['logs'].first.respond_to? :to_data_hash
-          jsonified['logs'] = jsonified['logs'].map do |log|
-            newlog = log.to_data_hash
-            if log.tags.respond_to? :to_data_hash
-              newlog['tags'] = log.tags.to_data_hash
-            end
-            newlog
-          end
+        # Because puppet manages this in a dumb way, to_data_hash produces an object which contains references to the
+        # original report object, meaning modifying this will modify the report object used by later report processors.
+        jsonified = {}
+        jsonified['host'] = self.host.clone
+        jsonified['time'] = self.time.clone
+        jsonified['configuration_version'] = self.configuration_version
+        jsonified['transaction_uuid'] = self.transaction_uuid.clone
+        jsonified['report_format'] = self.report_format
+        jsonified['puppet_version'] = self.puppet_version.clone
+        jsonified['kind'] = self.kind.clone
+        jsonified['status'] = self.status.clone
+        jsonified['environment'] = self.environment.clone
+        jsonified['logs'] = self.logs.map do |log|
+          ret = {}
+          ret['file'] = log.file.clone
+          ret['line'] = log.line
+          ret['level'] = log.level.clone
+          ret['message'] = log.message.clone
+          ret['source'] = log.source.clone
+          ret['time'] = log.time.clone
+          ret['tags'] = log.tags.to_a.clone
         end
-        if jsonified['metrics'].values.first.respond_to? :to_data_hash
-          jsonified['metrics'].each { |k,v| jsonified['metrics'][k] = v.to_data_hash }
+        jsonified['metrics'] = {}
+        self.metrics.each do |key, value|
+          jsonified['metrics'][key] = {}
+          jsonified['metrics'][key]['name'] = value.name.clone
+          jsonified['metrics'][key]['label'] = value.label.clone
+          jsonified['metrics'][key]['values'] = value.values.clone
         end
-        if jsonified['resource_statuses'].values.first.respond_to? :to_data_hash
-          jsonified['resource_statuses'].each do |k,v|
-            jsonified['resource_statuses'][k] = v.to_data_hash
-            if v.events.first.respond_to? :to_data_hash
-              jsonified['resource_statuses'][k]['events'] = v.events.map { |x| x.to_data_hash }
-            end
-            if v.tags.respond_to? :to_data_hash
-              jsonified['resource_statuses'][k]['tags'] = v.tags.to_data_hash
-            end
+        jsonified['resource_statuses'] = {}
+        self.resource_statuses.each do |key, value|
+          jsonified['resource_statuses'][key]['resource_type'] = value.resource_type.clone
+          jsonified['resource_statuses'][key]['title'] = value.title.clone
+          jsonified['resource_statuses'][key]['resource'] = value.resource.clone
+          jsonified['resource_statuses'][key]['file'] = value.file.clone
+          jsonified['resource_statuses'][key]['line'] = value.line
+          jsonified['resource_statuses'][key]['evaluation_time'] = value.evaluation_time.clone
+          jsonified['resource_statuses'][key]['change_count'] = value.change_count
+          jsonified['resource_statuses'][key]['out_of_sync_count'] = value.out_of_sync_count
+          jsonified['resource_statuses'][key]['time'] = value.time.clone
+          jsonified['resource_statuses'][key]['out_of_sync'] = value.out_of_sync.clone
+          jsonified['resource_statuses'][key]['changed'] = value.changed.clone
+          jsonified['resource_statuses'][key]['skipped'] = value.skipped.clone
+          jsonified['resource_statuses'][key]['failed'] = value.failed.clone
+          jsonified['resource_statuses'][key]['containment_path'] = value.containment_path.clone
+          jsonified['resource_statuses'][key]['tags'] = value.tags.to_a.clone
+          jsonified['resource_statuses'][key]['events'] = value.events.map do |event|
+            tmp = {}
+            tmp['audited'] = event.audited.clone
+            tmp['property'] = event.property.clone
+            tmp['previous_value'] = event.previous_value.clone
+            tmp['desired_value'] = event.desired_value.clone
+            tmp['historical_value'] = event.historical_value.clone
+            tmp['message'] = event.message.clone
+            tmp['name'] = event.name.clone
+            tmp['status'] = event.status.clone
+            tmp['time'] = event.time.clone
+            tmp
           end
         end
         fh.print(JSON.generate(jsonified))
