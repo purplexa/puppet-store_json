@@ -1,8 +1,8 @@
 {
   "name": "thrnio-store_json",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Ryan Whitehurst",
-  "summary": "An alternative to the default "store" report processor in Puppet that writes JSON files instead of serialized Ruby YAML.",
+  "summary": "An alternative to the default \"store\" report processor in Puppet that writes JSON files instead of serialized Ruby YAML.",
   "license": "Apache-2.0",
   "source": "https://github.com/thrnio/puppet-store_json",
   "project_page": "https://github.com/thrnio/puppet-store_json",
